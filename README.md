@@ -47,7 +47,7 @@ npm run dev
 
 ## Licence
 
-Ajoutez un fichier LICENSE pour définir les droits d’utilisation.
+Ce projet est sous licence **MIT**. Consultez le fichier [LICENSE](./LICENSE) pour plus de détails.
 
 ## Contribution
 
@@ -55,8 +55,7 @@ Les contributions sont les bienvenues ! Ouvrez une issue ou une pull request.
 
 ## Auteur
 
-- Votre nom
-
+* **Marwen jemai** - [*GitHub*](https://github.com/jemi3i)
 ---
 
 > Ce README global permet de comprendre rapidement la structure et l’utilisation du projet.
