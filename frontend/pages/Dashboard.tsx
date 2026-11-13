@@ -51,15 +51,20 @@ const Dashboard: React.FC = () => {
   const [aiInsights, setAiInsights] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Business data endpoints return 403 until the enterprise is approved,
+  // so only fetch once the enterprise is known to be active (platform admins are exempt).
+  const canFetchBusinessData =
+    user?.role === Role.PLATFORM_ADMIN || enterprise?.status === 'active';
+
   // Fetch data when business changes
   useEffect(() => {
-    if (currentBusiness?.id) {
+    if (canFetchBusinessData && currentBusiness?.id) {
       fetchInvoices(currentBusiness.id);
       fetchExpenses(currentBusiness.id);
       fetchInvoiceStats(currentBusiness.id);
       fetchExpenseStats(currentBusiness.id);
     }
-  }, [currentBusiness?.id]);
+  }, [currentBusiness?.id, canFetchBusinessData]);
 
   const stats = useMemo(() => {
     const revenue = invoiceStats?.totalRevenue || 0;
@@ -100,9 +105,9 @@ const Dashboard: React.FC = () => {
     user?.role === Role.BUSINESS_ADMIN;
 
   const handleGenerateInsights = async () => {
-    if (!isOwner) return; // Only owner can initiate AI audits
+    if (!isOwner || !currentBusiness?.id) return; // Only owner can initiate AI audits
     setIsGenerating(true);
-    const insights = await getFinancialInsights(filteredInvoices);
+    const insights = await getFinancialInsights(currentBusiness.id);
     setAiInsights(insights || null);
     setIsGenerating(false);
   };

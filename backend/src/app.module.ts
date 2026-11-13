@@ -9,6 +9,7 @@ import { TeamModule } from './modules/team/team.module';
 import { ClientModule } from './modules/client/client.module';
 import { InvoiceModule } from './modules/invoice/invoice.module';
 import { ExpenseModule } from './modules/expense/expense.module';
+import { AiModule } from './modules/ai/ai.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { ExpenseModule } from './modules/expense/expense.module';
     ClientModule,
     InvoiceModule,
     ExpenseModule,
+    AiModule,
   ],
 })
 export class AppModule {}
