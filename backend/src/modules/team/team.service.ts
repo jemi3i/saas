@@ -8,7 +8,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomBytes } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { TeamInvitation, InvitationStatus, UserBusiness } from './entities';
 import { User } from '../user/user.entity';
 import { Business } from '../business/business.entity';
