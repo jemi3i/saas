@@ -4,9 +4,10 @@ import { Expense } from './expense.entity';
 import { ExpenseService } from './expense.service';
 import { ExpenseController } from './expense.controller';
 import { Business } from '../business/business.entity';
+import { UserBusiness } from '../team/entities/user-business.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Expense, Business])],
+  imports: [TypeOrmModule.forFeature([Expense, Business, UserBusiness])],
   controllers: [ExpenseController],
   providers: [ExpenseService],
   exports: [ExpenseService],

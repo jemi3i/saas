@@ -4,11 +4,12 @@ import { Invoice } from './invoice.entity';
 import { InvoiceService } from './invoice.service';
 import { InvoiceController } from './invoice.controller';
 import { Business } from '../business/business.entity';
+import { UserBusiness } from '../team/entities/user-business.entity';
 import { Client } from '../client/client.entity';
 import { ClientModule } from '../client/client.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Invoice, Business, Client]), ClientModule],
+  imports: [TypeOrmModule.forFeature([Invoice, Business, Client, UserBusiness]), ClientModule],
   controllers: [InvoiceController],
   providers: [InvoiceService],
   exports: [InvoiceService],
