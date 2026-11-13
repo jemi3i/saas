@@ -1,9 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, FileText, Plus, MessageSquare, History } from 'lucide-react';
 import Button from '../components/atoms/Button';
 import { useInvoiceStore } from '../store/invoiceStore';
+import { useClientStore } from '../store/clientStore';
+import { useBusinessStore } from '../store/businessStore';
+import { Client, InvoiceStatus } from '../types';
 import { formatCurrency, formatDate, cn } from '../lib/utils';
 import InvoiceTable from '../components/organisms/InvoiceTable';
 
@@ -12,10 +15,34 @@ type Tab = 'invoices' | 'communication';
 const ClientDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { clients, invoices, getClientTotalOwed, deleteInvoice } = useInvoiceStore();
+  const { invoices, fetchInvoices, deleteInvoice } = useInvoiceStore();
+  const { clients, getClient } = useClientStore();
+  const { currentBusiness } = useBusinessStore();
   const [activeTab, setActiveTab] = useState<Tab>('invoices');
-  
-  const client = clients.find(c => c.id === id);
+  const [fetchedClient, setFetchedClient] = useState<Client | null>(null);
+  const [isLoadingClient, setIsLoadingClient] = useState(false);
+
+  const businessId = currentBusiness?.id;
+  const client = clients.find((c) => c.id === id) ?? fetchedClient;
+
+  useEffect(() => {
+    if (!businessId) return;
+    fetchInvoices(businessId);
+    if (id && !clients.some((c) => c.id === id)) {
+      setIsLoadingClient(true);
+      getClient(id, businessId)
+        .then(setFetchedClient)
+        .finally(() => setIsLoadingClient(false));
+    }
+  }, [id, businessId]);
+
+  if (isLoadingClient) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <p className="text-muted-foreground">Loading client...</p>
+      </div>
+    );
+  }
 
   if (!client) {
     return (
@@ -26,8 +53,17 @@ const ClientDetail: React.FC = () => {
     );
   }
 
-  const clientInvoices = invoices.filter(i => i.email === client.email);
-  const totalOwed = getClientTotalOwed(client.id, client.email);
+  const clientInvoices = invoices.filter((i) => i.clientId === client.id);
+  const totalOwed = clientInvoices
+    .filter((i) => i.status !== InvoiceStatus.PAID)
+    .reduce((sum, i) => sum + Number(i.total || 0), 0);
+
+  const handleDeleteInvoice = async (invoiceId: string) => {
+    if (!businessId) return;
+    if (confirm('Are you sure you want to delete this invoice?')) {
+      await deleteInvoice(invoiceId, businessId);
+    }
+  };
 
   // Mock communication history
   const communicationLogs = [
@@ -125,7 +161,7 @@ const ClientDetail: React.FC = () => {
                     <Plus className="h-4 w-4 mr-1" /> New Invoice
                   </Button>
                 </div>
-                <InvoiceTable invoices={clientInvoices} onDelete={deleteInvoice} />
+                <InvoiceTable invoices={clientInvoices} onDelete={handleDeleteInvoice} />
               </div>
             ) : (
               <div className="space-y-6">

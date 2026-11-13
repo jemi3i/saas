@@ -7,6 +7,7 @@ import { MoreHorizontal, Trash2, Edit, Eye, Send, Download, CheckCircle2 } from 
 import Button from '../atoms/Button';
 import { useToastStore } from '../../store/toastStore';
 import { useInvoiceStore } from '../../store/invoiceStore';
+import { useBusinessStore } from '../../store/businessStore';
 import { generateInvoicePDF } from '../../services/pdfService';
 
 interface InvoiceTableProps {
@@ -17,11 +18,17 @@ interface InvoiceTableProps {
 const InvoiceTable: React.FC<InvoiceTableProps> = ({ invoices, onDelete }) => {
   const navigate = useNavigate();
   const { addToast } = useToastStore();
-  const { updateInvoice } = useInvoiceStore();
+  const { markAsPaid } = useInvoiceStore();
+  const { currentBusiness } = useBusinessStore();
 
-  const handleMarkAsPaid = (invoice: Invoice) => {
-    updateInvoice({ ...invoice, status: InvoiceStatus.PAID });
-    addToast(`Invoice ${invoice.invoiceNumber} marked as paid`, 'success');
+  const handleMarkAsPaid = async (invoice: Invoice) => {
+    if (!currentBusiness?.id) return;
+    try {
+      await markAsPaid(invoice.id, currentBusiness.id);
+      addToast(`Invoice ${invoice.invoiceNumber} marked as paid`, 'success');
+    } catch (error) {
+      addToast('Failed to mark invoice as paid', 'error');
+    }
   };
 
   const handleEdit = (invoice: Invoice) => {

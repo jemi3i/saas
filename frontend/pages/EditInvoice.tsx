@@ -34,7 +34,7 @@ const TAX_RATE = 0.19;
 const EditInvoice: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { invoices, updateInvoice } = useInvoiceStore();
+  const { invoices, updateInvoice, markAsPaid } = useInvoiceStore();
   const { currentBusiness } = useBusinessStore();
   const { addToast } = useToastStore();
 
@@ -63,8 +63,8 @@ const EditInvoice: React.FC = () => {
       reset({
         clientName: invoice.clientName,
         email: invoice.email,
-        invoiceDate: invoice.invoiceDate,
-        dueDate: invoice.dueDate,
+        invoiceDate: invoice.issueDate?.slice(0, 10) ?? '',
+        dueDate: invoice.dueDate?.slice(0, 10) ?? '',
         items:
           invoice.items.length > 0
             ? invoice.items.map((item) => ({
@@ -108,25 +108,20 @@ const EditInvoice: React.FC = () => {
   }
 
   const onSubmit = async (data: InvoiceFormValues, newStatus?: InvoiceStatus) => {
+    if (!currentBusiness?.id) return;
     try {
-      const updatedInvoice: Invoice = {
-        ...invoice,
-        clientName: data.clientName,
-        email: data.email,
-        amount: totals.total,
-        status: newStatus || invoice.status,
-        invoiceDate: data.invoiceDate,
+      // Only send fields accepted by the backend UpdateInvoiceDto (totals are computed server-side)
+      await updateInvoice(invoice.id, currentBusiness.id, {
+        issueDate: data.invoiceDate,
         dueDate: data.dueDate,
-        subtotal: totals.subtotal,
-        taxAmount: totals.taxAmount,
+        status: newStatus || invoice.status,
         items: data.items.map((item, idx) => ({
-          ...item,
-          id: invoice.items[idx]?.id || Math.random().toString(36).substr(2, 9),
-          lineTotal: item.quantity * item.unitPrice,
+          id: invoice.items[idx]?.id || Math.random().toString(36).slice(2, 11),
+          description: item.description,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
         })),
-      };
-
-      updateInvoice(updatedInvoice);
+      });
       addToast('Invoice updated successfully', 'success');
       navigate('/invoices');
     } catch (e) {
@@ -134,14 +129,15 @@ const EditInvoice: React.FC = () => {
     }
   };
 
-  const handleMarkAsPaid = () => {
-    const updatedInvoice: Invoice = {
-      ...invoice,
-      status: InvoiceStatus.PAID,
-    };
-    updateInvoice(updatedInvoice);
-    addToast('Invoice marked as paid', 'success');
-    navigate('/invoices');
+  const handleMarkAsPaid = async () => {
+    if (!currentBusiness?.id) return;
+    try {
+      await markAsPaid(invoice.id, currentBusiness.id);
+      addToast('Invoice marked as paid', 'success');
+      navigate('/invoices');
+    } catch (e) {
+      addToast('Failed to mark invoice as paid', 'error');
+    }
   };
 
   return (
