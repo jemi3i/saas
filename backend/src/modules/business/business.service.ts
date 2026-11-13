@@ -113,4 +113,15 @@ export class BusinessService {
       nonCompliant: businesses.length - compliantCount,
     };
   }
+
+  async getGlobalBusinessStats() {
+    const businesses = await this.businessRepository.find();
+    const compliantCount = businesses.filter((b) => b.isCompliant).length;
+
+    return {
+      total: businesses.length,
+      compliant: compliantCount,
+      nonCompliant: businesses.length - compliantCount,
+    };
+  }
 }

@@ -9,12 +9,14 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { BusinessService } from './business.service';
 import { CreateBusinessDto, UpdateBusinessDto, BusinessResponseDto } from './dto';
 import { JwtAuthGuard } from '../auth/guards';
-import { RolesGuard } from '../../common/guards';
+import { RolesGuard, BusinessAccessGuard, BusinessIdParam } from '../../common/guards';
 import { Roles, CurrentUser } from '../../common/decorators';
 import { Role } from '../../common/enums';
 
@@ -56,33 +58,32 @@ export class BusinessController {
   ) {
     // Only allow access to own enterprise businesses unless platform admin
     if (user.role !== Role.PLATFORM_ADMIN && user.enterpriseId !== enterpriseId) {
-      return this.businessService.findByEnterpriseId(user.enterpriseId);
+      throw new ForbiddenException('Access denied');
     }
     return this.businessService.findByEnterpriseId(enterpriseId);
   }
 
   @Get('stats')
   @ApiOperation({ summary: 'Get business statistics for user enterprise' })
-  async getStats(@CurrentUser('enterpriseId') enterpriseId: string) {
-    if (!enterpriseId) {
+  async getStats(@CurrentUser() user: any) {
+    if (user.role === Role.PLATFORM_ADMIN) {
+      return this.businessService.getGlobalBusinessStats();
+    }
+    if (!user.enterpriseId) {
       return { total: 0, compliant: 0, nonCompliant: 0 };
     }
-    return this.businessService.getBusinessStatsByEnterprise(enterpriseId);
+    return this.businessService.getBusinessStatsByEnterprise(user.enterpriseId);
   }
 
   @Get(':id')
+  @UseGuards(BusinessAccessGuard)
+  @BusinessIdParam('id')
   @ApiOperation({ summary: 'Get business by ID' })
   @ApiResponse({ status: 200, description: 'Business found', type: BusinessResponseDto })
   @ApiResponse({ status: 404, description: 'Business not found' })
-  async findById(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: any) {
-    const business = await this.businessService.findById(id);
-
-    // Check access
-    if (user.role !== Role.PLATFORM_ADMIN && business.enterpriseId !== user.enterpriseId) {
-      throw new Error('Forbidden');
-    }
-
-    return business;
+  async findById(@Param('id', ParseUUIDPipe) id: string) {
+    // Access is enforced by BusinessAccessGuard
+    return this.businessService.findById(id);
   }
 
   @Post()
@@ -91,12 +92,14 @@ export class BusinessController {
   @ApiResponse({ status: 201, description: 'Business created', type: BusinessResponseDto })
   async create(@Body() dto: CreateBusinessDto, @CurrentUser() user: any) {
     if (!user.enterpriseId) {
-      throw new Error('User must belong to an enterprise');
+      throw new BadRequestException('User must belong to an enterprise');
     }
     return this.businessService.create(user.enterpriseId, user.id, dto);
   }
 
   @Put(':id')
+  @UseGuards(BusinessAccessGuard)
+  @BusinessIdParam('id')
   @ApiOperation({ summary: 'Update business' })
   @ApiResponse({ status: 200, description: 'Business updated', type: BusinessResponseDto })
   async update(

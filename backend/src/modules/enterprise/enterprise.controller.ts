@@ -9,6 +9,7 @@ import {
   Param,
   UseGuards,
   ParseUUIDPipe,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { EnterpriseService } from './enterprise.service';
@@ -75,7 +76,7 @@ export class EnterpriseController {
     // Platform admin can access any enterprise
     // Others can only access their own enterprise
     if (user.role !== Role.PLATFORM_ADMIN && user.enterpriseId !== id) {
-      return this.enterpriseService.findById(user.enterpriseId);
+      throw new ForbiddenException('Access denied');
     }
     return this.enterpriseService.findById(id);
   }
@@ -98,7 +99,7 @@ export class EnterpriseController {
   ) {
     // Only owner or platform admin can update
     if (user.role !== Role.PLATFORM_ADMIN && user.enterpriseId !== id) {
-      throw new Error('Forbidden');
+      throw new ForbiddenException('Access denied');
     }
     // Remove status from update if not platform admin
     if (user.role !== Role.PLATFORM_ADMIN) {
